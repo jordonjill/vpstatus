@@ -6,7 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 [[ d1_databases ]]
 binding = "DB"
 database_name = "vps-monitor-db"
-database_id = "YOUR_DATABASE_ID_HERE"
+database_id = "87a1c09c-c16e-4acd-951a-82a4aa22e22b"
 
 [triggers]
 crons = ["* * * * *"]
