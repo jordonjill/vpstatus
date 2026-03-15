@@ -44,23 +44,23 @@ export function getIndexHtml(): string {
         <div class="card border-0">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <div><i class="bi bi-hdd-network me-2"></i>Compute Nodes</div>
-                <div class="small text-muted">auto-refresh: 1 min</div>
+                <div class="small text-muted">Auto-refresh: 1 min</div>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive desktop-only">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-hover align-middle mb-0 server-table">
                         <thead>
                             <tr>
-                                <th class="ps-4">Server</th>
-                                <th>Status</th>
-                                <th>CPU</th>
-                                <th>Memory</th>
-                                <th>Disk</th>
-                                <th>Upload</th>
-                                <th>Download</th>
-                                <th>Uptime</th>
-                                <th>Last Update</th>
-                                <th class="pe-4">Availability</th>
+                                <th class="server-col">Server</th>
+                                <th class="metric-col">Status</th>
+                                <th class="metric-col">CPU</th>
+                                <th class="metric-col">Memory</th>
+                                <th class="metric-col">Disk</th>
+                                <th class="metric-col">Upload</th>
+                                <th class="metric-col">Download</th>
+                                <th class="metric-col">Uptime</th>
+                                <th class="metric-col">Last Update</th>
+                                <th class="availability-col">Availability</th>
                             </tr>
                         </thead>
                         <tbody id="serverTableBody" class="font-monospace">
@@ -89,19 +89,19 @@ export function getIndexHtml(): string {
         <div class="card border-0">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <div><i class="bi bi-globe2 me-2"></i>Website Monitors</div>
-                <div class="small text-muted">auto-refresh: 60 min</div>
+                <div class="small text-muted">Auto-refresh: 60 min</div>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive desktop-only">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-hover align-middle mb-0 site-table">
                         <thead>
                             <tr>
-                                <th class="ps-4">Website</th>
-                                <th>Status</th>
-                                <th>HTTP Code</th>
-                                <th>Response Time</th>
-                                <th>Last Checked</th>
-                                <th class="pe-4">24h History</th>
+                                <th class="site-col">Website</th>
+                                <th class="site-metric-col">Status</th>
+                                <th class="site-metric-col">HTTP Code</th>
+                                <th class="site-metric-col">Response Time</th>
+                                <th class="site-metric-col">Last Checked</th>
+                                <th class="site-history-col">24h History</th>
                             </tr>
                         </thead>
                         <tbody id="siteStatusTableBody" class="font-monospace">

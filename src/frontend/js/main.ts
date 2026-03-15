@@ -215,6 +215,49 @@ function buildDemoSites() {
     ];
 }
 
+function buildDemoChartHistory(serverId) {
+    const now = Math.floor(Date.now() / 1000);
+    const pointCount = 49; // 12h, sampled every 15 minutes
+    const intervalSeconds = 15 * 60;
+
+    const profiles = {
+        'edge-sin-01': { cpu: 33, memory: 42, disk: 36, upload: 182000, download: 620000 },
+        'db-core-02': { cpu: 58, memory: 65, disk: 75, upload: 84000, download: 185000 },
+        'cdn-usw-03': { cpu: 24, memory: 38, disk: 30, upload: 95000, download: 302000 },
+    };
+    const profile = profiles[serverId] || { cpu: 44, memory: 57, disk: 63, upload: 128000, download: 286000 };
+
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const round1 = value => Math.round(value * 10) / 10;
+    const history = [];
+
+    for (let idx = 0; idx < pointCount; idx++) {
+        const timestamp = now - (pointCount - 1 - idx) * intervalSeconds;
+        const waveFast = Math.sin((idx / pointCount) * Math.PI * 4);
+        const waveSlow = Math.cos((idx / pointCount) * Math.PI * 2.2);
+
+        const cpu = clamp(profile.cpu + waveFast * 8 + waveSlow * 3, 8, 96);
+        const memory = clamp(profile.memory + waveFast * 4 + waveSlow * 2.2, 15, 97);
+        const disk = clamp(profile.disk + waveSlow * 2.8, 8, 98);
+
+        const uploadSpeed = Math.max(0, Math.round(profile.upload * (1 + waveFast * 0.24 + waveSlow * 0.08)));
+        const downloadSpeed = Math.max(0, Math.round(profile.download * (1 + waveFast * 0.3 + waveSlow * 0.1)));
+
+        history.push({
+            timestamp,
+            cpu: { usage_percent: round1(cpu) },
+            memory: { usage_percent: round1(memory) },
+            disk: { usage_percent: round1(disk) },
+            network: {
+                upload_speed: uploadSpeed,
+                download_speed: downloadSpeed,
+            },
+        });
+    }
+
+    return history;
+}
+
 // Function to fetch VPS refresh interval and start periodic VPS data updates
 async function initializeVpsDataUpdates() {
         let vpsRefreshIntervalMs = DEFAULT_VPS_REFRESH_INTERVAL_MS;
@@ -393,9 +436,18 @@ async function populateDetailsRow(serverId, detailsRow) {
         const loadAvgStr = metrics.cpu.load_avg ? metrics.cpu.load_avg.join(' / ') : '-';
         detailsHtml += \`
             <div class="detail-item">
-                <strong>CPU</strong>
-                Usage: \${usagePct}<br>
-                Load Avg (1m/5m/15m): \${loadAvgStr}
+                <strong class="detail-title">CPU</strong>
+                <div class="detail-line">
+                    <span class="detail-label">Usage</span>
+                    <span class="detail-metric">\${usagePct}</span>
+                </div>
+                <div class="detail-line detail-line-load">
+                    <span class="detail-label">
+                        <span class="detail-label-main">Load Avg</span>
+                        <span class="detail-label-sub">(1m/5m/15m)</span>
+                    </span>
+                    <span class="detail-metric">\${loadAvgStr}</span>
+                </div>
             </div>
         \`;
     }
@@ -404,10 +456,19 @@ async function populateDetailsRow(serverId, detailsRow) {
     if (metrics.memory) {
         detailsHtml += \`
             <div class="detail-item">
-                <strong>Memory:</strong>
-                Total: \${formatDataSize(metrics.memory.total * 1024)}<br>
-                Used: \${formatDataSize(metrics.memory.used * 1024)}<br>
-                Free: \${formatDataSize(metrics.memory.free * 1024)}
+                <strong class="detail-title">Memory</strong>
+                <div class="detail-line">
+                    <span class="detail-label">Total Memory</span>
+                    <span class="detail-metric">\${formatDataSize(metrics.memory.total * 1024)}</span>
+                </div>
+                <div class="detail-line">
+                    <span class="detail-label">Used Memory</span>
+                    <span class="detail-metric">\${formatDataSize(metrics.memory.used * 1024)}</span>
+                </div>
+                <div class="detail-line">
+                    <span class="detail-label">Free Memory</span>
+                    <span class="detail-metric">\${formatDataSize(metrics.memory.free * 1024)}</span>
+                </div>
             </div>
         \`;
     }
@@ -416,10 +477,19 @@ async function populateDetailsRow(serverId, detailsRow) {
     if (metrics.disk) {
          detailsHtml += \`
             <div class="detail-item">
-                <strong>Disk (/):</strong>
-                Total: \${typeof metrics.disk.total === 'number' ? metrics.disk.total.toFixed(2) : '-'} GB<br>
-                Used: \${typeof metrics.disk.used === 'number' ? metrics.disk.used.toFixed(2) : '-'} GB<br>
-                Free: \${typeof metrics.disk.free === 'number' ? metrics.disk.free.toFixed(2) : '-'} GB
+                <strong class="detail-title">Disk (/)</strong>
+                <div class="detail-line">
+                    <span class="detail-label">Total Storage</span>
+                    <span class="detail-metric">\${typeof metrics.disk.total === 'number' ? metrics.disk.total.toFixed(2) : '-'} GB</span>
+                </div>
+                <div class="detail-line">
+                    <span class="detail-label">Used Storage</span>
+                    <span class="detail-metric">\${typeof metrics.disk.used === 'number' ? metrics.disk.used.toFixed(2) : '-'} GB</span>
+                </div>
+                <div class="detail-line">
+                    <span class="detail-label">Free Storage</span>
+                    <span class="detail-metric">\${typeof metrics.disk.free === 'number' ? metrics.disk.free.toFixed(2) : '-'} GB</span>
+                </div>
             </div>
         \`;
     }
@@ -428,10 +498,16 @@ async function populateDetailsRow(serverId, detailsRow) {
     if (metrics.network) {
         detailsHtml += \`
             <div class="detail-item">
-                <strong>Total Traffic</strong>
-                ↑ \${formatDataSize(metrics.network.total_upload)}<br>
-                ↓ \${formatDataSize(metrics.network.total_download)}<br>
-                <span class="text-muted" style="font-size:0.8em" id="traffic12h-\${serverId}">Loading 12h data…</span>
+                <strong class="detail-title">Total Traffic</strong>
+                <div class="detail-line">
+                    <span class="detail-label">Total Upload</span>
+                    <span class="detail-metric">\${formatDataSize(metrics.network.total_upload)}</span>
+                </div>
+                <div class="detail-line">
+                    <span class="detail-label">Total Download</span>
+                    <span class="detail-metric">\${formatDataSize(metrics.network.total_download)}</span>
+                </div>
+                <span class="detail-note" id="traffic12h-\${serverId}">Loading 12h data…</span>
             </div>
         \`;
     }
@@ -699,15 +775,34 @@ function renderMobileServerCards(allStatuses) {
         const lastUpdateRow = document.createElement('div');
         lastUpdateRow.className = 'mobile-card-row';
         lastUpdateRow.innerHTML = \`
-            <span class="mobile-card-label">Last Updated: \${lastUpdate}</span>
+            <span class="mobile-card-label">Last Updated</span>
+            <span class="mobile-card-value mobile-card-meta">\${lastUpdate}</span>
         \`;
         cardBody.appendChild(lastUpdateRow);
+
+        const chartRow = document.createElement('div');
+        chartRow.className = 'mobile-card-row mobile-card-action-row';
+        chartRow.innerHTML = \`
+            <button class="btn btn-sm mobile-chart-btn" data-server-id="\${serverId}" data-server-name="\${serverName || 'Server'}">
+                <i class="bi bi-graph-up-arrow"></i> 12h Charts
+            </button>
+        \`;
+        cardBody.appendChild(chartRow);
 
         // Assemble card
         card.appendChild(cardHeader);
         card.appendChild(cardBody);
 
         mobileContainer.appendChild(card);
+    });
+
+    document.querySelectorAll('.mobile-chart-btn').forEach(btn => {
+        btn.addEventListener('click', function(event) {
+            event.stopPropagation();
+            const sid = this.getAttribute('data-server-id');
+            const sname = this.getAttribute('data-server-name') || 'Server';
+            if (sid) openChartsModal(sid, sname);
+        });
     });
 }
 
@@ -776,16 +871,17 @@ function renderMobileSiteCards(sites) {
         const lastCheckRow = document.createElement('div');
         lastCheckRow.className = 'mobile-card-row';
         lastCheckRow.innerHTML = \`
-            <span class="mobile-card-label">Last Checked: \${lastCheckTime}</span>
+            <span class="mobile-card-label">Last Checked</span>
+            <span class="mobile-card-value mobile-card-meta">\${lastCheckTime}</span>
         \`;
         cardBody.appendChild(lastCheckRow);
 
         // 24h history bars - always shown even when no data
         const historyContainer = document.createElement('div');
-        historyContainer.className = 'mobile-history-container';
+        historyContainer.className = 'mobile-history-container mobile-card-row mobile-history-row';
         historyContainer.innerHTML = \`
             <div class="mobile-history-label">24h History</div>
-            <div class="history-bar-container"></div>
+            <div class="history-bar-container mobile-history-bars"></div>
         \`;
         cardBody.appendChild(historyContainer);
 
@@ -867,21 +963,21 @@ function renderServerTable(allStatuses) {
         mainRow.classList.add('server-row');
         mainRow.setAttribute('data-server-id', serverId);
         mainRow.innerHTML = \`
-            <td>
+            <td class="server-name-cell">
                 \${serverName}
-                <button class="btn btn-outline-info border-0 btn-sm ms-2 chart-btn" data-server-id="\${serverId}" data-server-name="\${serverName}" title="View 12h Charts" onclick="event.stopPropagation(); openChartsModal('\${serverId}', '\${serverName}')">
-                    <i class="bi bi-bar-chart-line"></i>
+                <button class="chart-trigger-btn" data-server-id="\${serverId}" data-server-name="\${serverName}" title="View 12h charts" onclick="event.stopPropagation(); openChartsModal('\${serverId}', '\${serverName}')">
+                    <i class="bi bi-graph-up"></i><span>12h</span>
                 </button>
             </td>
-            <td>\${statusBadge}</td>
-            <td>\${cpuHtml}</td>
-            <td>\${memoryHtml}</td>
-            <td>\${diskHtml}</td>
-            <td>\${uploadSpeed}</td>
-            <td>\${downloadSpeed}</td>
-            <td>\${uptime}</td>
-            <td>\${lastUpdate}</td>
-            <td id="avail-\${serverId}"><span class="text-muted small">-</span></td>
+            <td class="metric-cell">\${statusBadge}</td>
+            <td class="metric-cell">\${cpuHtml}</td>
+            <td class="metric-cell">\${memoryHtml}</td>
+            <td class="metric-cell">\${diskHtml}</td>
+            <td class="metric-cell">\${uploadSpeed}</td>
+            <td class="metric-cell">\${downloadSpeed}</td>
+            <td class="metric-cell">\${uptime}</td>
+            <td class="metric-cell">\${lastUpdate}</td>
+            <td id="avail-\${serverId}" class="availability-cell"><span class="text-muted small">-</span></td>
         \`;
 
         // Clone the details row template
@@ -1017,16 +1113,17 @@ async function renderSiteStatusTable(sites) {
         const responseTime = site.last_response_time_ms !== null ? \`\${site.last_response_time_ms} ms\` : '-';
 
         const historyCell = document.createElement('td');
+        historyCell.className = 'site-history-cell';
         const historyContainer = document.createElement('div');
         historyContainer.className = 'history-bar-container';
         historyCell.appendChild(historyContainer);
 
         row.innerHTML = \`
-            <td>\${site.name || '-'}</td>
-            <td><span class="badge \${statusInfo.class}">\${statusInfo.text}</span></td>
-            <td>\${site.last_status_code || '-'}</td>
-            <td>\${responseTime}</td>
-            <td>\${lastCheckTime}</td>
+            <td class="site-name-cell">\${site.name || '-'}</td>
+            <td class="site-metric-cell"><span class="badge \${statusInfo.class}">\${statusInfo.text}</span></td>
+            <td class="site-metric-cell">\${site.last_status_code || '-'}</td>
+            <td class="site-metric-cell">\${responseTime}</td>
+            <td class="site-metric-cell">\${lastCheckTime}</td>
         \`;
         row.appendChild(historyCell);
         tableBody.appendChild(row);
@@ -1157,41 +1254,170 @@ async function openChartsModal(serverId, serverName) {
     bsModal.show();
 
     try {
-        const result = await publicApiRequest(\`/api/history/\${serverId}\`);
-        const history = result.history || [];
+        let history = [];
+        let usingDemoHistory = false;
+        try {
+            const result = await publicApiRequest(\`/api/history/\${serverId}\`);
+            history = result.history || [];
+        } catch {
+            history = [];
+        }
 
-        const labels = history.map(h => new Date(h.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-        const cpuData    = history.map(h => h.cpu    ? h.cpu.usage_percent    : null);
-        const memData    = history.map(h => h.memory ? h.memory.usage_percent : null);
-        const diskData   = history.map(h => h.disk   ? h.disk.usage_percent   : null);
-        const uploadData = history.map(h => h.network ? h.network.upload_speed   / 1024 : null);
-        const dlData     = history.map(h => h.network ? h.network.download_speed / 1024 : null);
+        if (history.length === 0) {
+            history = buildDemoChartHistory(serverId);
+            usingDemoHistory = true;
+        }
 
-        const chartOpts = (label, color) => ({
+        if (usingDemoHistory) {
+            document.getElementById('chartsModalLabel').textContent = \`12-Hour Charts — \${serverName} (Demo)\`;
+        }
+
+        const newestTimestamp = history[history.length - 1].timestamp || Math.floor(Date.now() / 1000);
+        const windowStartTimestamp = newestTimestamp - (12 * 60 * 60);
+        const theme = document.documentElement.getAttribute('data-bs-theme') || 'dark';
+        const axisColor = theme === 'light' ? 'rgba(16, 32, 57, 0.76)' : 'rgba(232, 238, 252, 0.74)';
+        const majorGridColor = theme === 'light' ? 'rgba(16, 32, 57, 0.12)' : 'rgba(232, 238, 252, 0.14)';
+        const minorGridColor = theme === 'light' ? 'rgba(16, 32, 57, 0.08)' : 'rgba(232, 238, 252, 0.09)';
+
+        const toHourPosition = (timestamp) =>
+            Math.max(0, Math.min(12, (timestamp - windowStartTimestamp) / 3600));
+
+        const points = history.map(item => ({ x: toHourPosition(item.timestamp), item }));
+
+        const toSeries = (extractor) =>
+            points
+                .map(({ x, item }) => ({ x, y: extractor(item) }))
+                .filter(point => typeof point.y === 'number' && !Number.isNaN(point.y));
+
+        const baseXScale = {
+            type: 'linear',
+            min: 0,
+            max: 12,
+            title: {
+                display: true,
+                text: 'Hours (12h)',
+                color: axisColor,
+                font: { size: 13, weight: '700' },
+                padding: { top: 8 },
+            },
+            ticks: {
+                stepSize: 3,
+                color: axisColor,
+                callback: value => (Number(value) % 3 === 0 ? value : ''),
+                maxRotation: 0,
+            },
+            grid: { color: majorGridColor, drawBorder: false },
+            border: { display: false },
+        };
+
+        const buildPercentOptions = (label, color) => ({
             type: 'line',
-            data: { labels, datasets: [{ label, data: [], borderColor: color, backgroundColor: color + '33', fill: true, tension: 0.3, pointRadius: 0 }] },
-            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } } }
+            data: {
+                datasets: [{
+                    label,
+                    data: [],
+                    borderColor: color,
+                    backgroundColor: color + '26',
+                    fill: true,
+                    tension: 0.24,
+                    pointRadius: 0,
+                    pointHoverRadius: 3,
+                    borderWidth: 2,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: baseXScale,
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            maxTicksLimit: 5,
+                            color: axisColor,
+                            callback: value => value + '%',
+                        },
+                        grid: { color: minorGridColor, drawBorder: false },
+                        border: { display: false },
+                    },
+                },
+            },
         });
 
-        const cpuOpts = chartOpts('CPU %', '#0d6efd');
-        cpuOpts.data.datasets[0].data = cpuData;
+        const cpuOpts = buildPercentOptions('CPU %', '#2f9bff');
+        cpuOpts.data.datasets[0].data = toSeries(item => item.cpu ? item.cpu.usage_percent : null);
         activeCharts.push(new Chart(document.getElementById('cpuChart'), cpuOpts));
 
-        const memOpts = chartOpts('Memory %', '#198754');
-        memOpts.data.datasets[0].data = memData;
+        const memOpts = buildPercentOptions('Memory %', '#22c58b');
+        memOpts.data.datasets[0].data = toSeries(item => item.memory ? item.memory.usage_percent : null);
         activeCharts.push(new Chart(document.getElementById('memoryChart'), memOpts));
 
-        const diskOpts = chartOpts('Disk %', '#fd7e14');
-        diskOpts.data.datasets[0].data = diskData;
+        const diskOpts = buildPercentOptions('Disk %', '#ff9d2e');
+        diskOpts.data.datasets[0].data = toSeries(item => item.disk ? item.disk.usage_percent : null);
         activeCharts.push(new Chart(document.getElementById('diskChart'), diskOpts));
 
         const netOpts = {
             type: 'line',
-            data: { labels, datasets: [
-                { label: 'Upload KB/s', data: uploadData, borderColor: '#0dcaf0', backgroundColor: '#0dcaf033', fill: false, tension: 0.3, pointRadius: 0 },
-                { label: 'Download KB/s', data: dlData, borderColor: '#6f42c1', backgroundColor: '#6f42c133', fill: false, tension: 0.3, pointRadius: 0 }
-            ]},
-            options: { responsive: true, plugins: { legend: { display: true } }, scales: { y: { beginAtZero: true } } }
+            data: {
+                datasets: [
+                    {
+                        label: 'Upload KB/s',
+                        data: toSeries(item => item.network ? item.network.upload_speed / 1024 : null),
+                        borderColor: '#00c9ff',
+                        backgroundColor: '#00c9ff24',
+                        fill: false,
+                        tension: 0.24,
+                        pointRadius: 0,
+                        pointHoverRadius: 3,
+                        borderWidth: 2,
+                    },
+                    {
+                        label: 'Download KB/s',
+                        data: toSeries(item => item.network ? item.network.download_speed / 1024 : null),
+                        borderColor: '#5f7cff',
+                        backgroundColor: '#5f7cff24',
+                        fill: false,
+                        tension: 0.24,
+                        pointRadius: 0,
+                        pointHoverRadius: 3,
+                        borderWidth: 2,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        align: 'end',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            color: axisColor,
+                            boxWidth: 7,
+                            boxHeight: 7,
+                        },
+                    },
+                },
+                scales: {
+                    x: baseXScale,
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            maxTicksLimit: 5,
+                            color: axisColor,
+                        },
+                        grid: { color: minorGridColor, drawBorder: false },
+                        border: { display: false },
+                    },
+                },
+            },
         };
         activeCharts.push(new Chart(document.getElementById('networkChart'), netOpts));
 
