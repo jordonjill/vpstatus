@@ -10,3 +10,6 @@ database_id = "87a1c09c-c16e-4acd-951a-82a4aa22e22b"
 
 [triggers]
 crons = ["* * * * *"]
+
+[observability]
+enabled = false
