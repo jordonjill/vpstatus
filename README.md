@@ -2,6 +2,10 @@
 
 VPS and website monitoring dashboard built on **Cloudflare Workers** + **D1**.
 
+## Chinese Deployment Guide (Cloudflare Dashboard)
+
+- [Cloudflare Worker 图形化部署完全指南（中文）](docs/cloudflare-worker-dashboard-deploy-zh-cn.md)
+
 It provides:
 - VPS metrics (CPU, memory, disk, network, uptime)
 - 12-hour VPS history
