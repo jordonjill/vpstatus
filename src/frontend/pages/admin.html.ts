@@ -34,7 +34,7 @@ export function getAdminHtml(): string {
                 <button id="themeToggler" class="btn btn-outline-light btn-sm rounded-circle p-2 d-flex shadow-sm">
                     <i class="bi bi-moon-stars-fill"></i>
                 </button>
-                <button class="btn btn-outline-info btn-sm rounded-pill px-3 shadow-sm d-flex align-items-center" id="changePasswordBtnDesktop" title="Change password">
+                <button class="btn btn-outline-info security-pill-btn btn-sm rounded-pill px-3 shadow-sm d-flex align-items-center" id="changePasswordBtnDesktop" title="Change password">
                     <i class="bi bi-key me-2"></i><span>Security</span>
                 </button>
                 <div class="dropdown">

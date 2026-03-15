@@ -38,13 +38,6 @@ export function getIndexHtml(): string {
     </nav>
 
     <main class="container-fluid px-4 py-4 flex-shrink-0">
-        <div class="row mb-3">
-            <div class="col-12">
-                <h2 class="fw-bold mb-0"><i class="bi bi-activity me-2 text-info"></i>Global Fleet Overview</h2>
-                <div class="text-muted small mt-1">Realtime VPS metrics with 12-hour availability and endpoint checks.</div>
-            </div>
-        </div>
-
         <div id="demoModeBanner" class="alert alert-warning d-none py-2" role="status"></div>
 
         <div id="noServers" class="alert alert-info d-none" role="alert"></div>
@@ -177,7 +170,8 @@ export function getIndexHtml(): string {
 
     <footer class="footer py-3 mt-auto">
         <div class="container-fluid px-4 text-center small text-muted">
-            VPS Status © 2026
+            <div>VPS Status © 2026</div>
+            <div class="fleet-footnote">Realtime VPS metrics with 12-hour availability and endpoint checks.</div>
         </div>
     </footer>
 

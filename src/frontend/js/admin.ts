@@ -846,7 +846,8 @@ async function saveServer() {
             showToast('success', serverId ? 'Server updated successfully.' : 'Server added successfully.');
         }
     } catch (error) {
-                showToast('danger', 'Failed to save server. Please try again.');
+        const message = error && error.message ? error.message : 'Unknown error';
+        showToast('danger', 'Failed to save server: ' + message);
     }
 }
 
@@ -1502,11 +1503,30 @@ function showToast(type, message, options = {}) {
         info: 'bi-info-circle-fill'
     };
 
-    toast.innerHTML =
-        '<i class="toast-icon bi ' + icons[type] + '"></i>' +
-        '<div class="toast-content">' + message + '</div>' +
-        '<button class="toast-close" onclick="hideToast(this.parentElement)">×</button>' +
-        (persistent ? '' : '<div class="toast-progress" style="animation-duration: ' + duration + 'ms"></div>');
+    const icon = document.createElement('i');
+    icon.className = 'toast-icon bi ' + (icons[type] || icons.info);
+    toast.appendChild(icon);
+
+    const content = document.createElement('div');
+    content.className = 'toast-content';
+    content.textContent = String(message || '');
+    toast.appendChild(content);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'toast-close';
+    closeBtn.type = 'button';
+    closeBtn.textContent = '×';
+    closeBtn.addEventListener('click', function() {
+        hideToast(toast);
+    });
+    toast.appendChild(closeBtn);
+
+    if (!persistent) {
+        const progress = document.createElement('div');
+        progress.className = 'toast-progress';
+        progress.style.animationDuration = duration + 'ms';
+        toast.appendChild(progress);
+    }
 
     container.appendChild(toast);
 

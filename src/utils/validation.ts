@@ -55,8 +55,12 @@ export function validateInput(input: unknown, type: string, maxLength = 255): bo
   const validators: Record<string, () => boolean> = {
     serverName: () => {
       if (!/^[\w\s\u4e00-\u9fa5.-]{2,50}$/.test(cleaned)) return false;
-      const sqlKeywords = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'SCRIPT', 'UNION', 'OR', 'AND'];
-      return !sqlKeywords.some(keyword => cleaned.toUpperCase().includes(keyword));
+      const upper = cleaned.toUpperCase();
+      const criticalSqlPattern = /\b(SELECT|INSERT|UPDATE|DELETE|DROP|SCRIPT|UNION)\b/;
+      const logicalOpPattern = /(?:^|[\s._-])(OR|AND)(?:$|[\s._-])/;
+      if (criticalSqlPattern.test(upper)) return false;
+      if (logicalOpPattern.test(upper)) return false;
+      return true;
     },
     description: () => {
       if (cleaned.length > 500) return false;
