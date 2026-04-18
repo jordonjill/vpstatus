@@ -6,6 +6,7 @@ let vpsIntervalCache: { value: number | null; timestamp: number } = {
   timestamp: 0,
 };
 const VPS_INTERVAL_CACHE_TTL = 60000; // 1 minute
+const DEFAULT_VPS_REPORT_INTERVAL_SECONDS = 120;
 
 export async function getVpsReportInterval(env: Env): Promise<number> {
   const now = Date.now();
@@ -21,7 +22,7 @@ export async function getVpsReportInterval(env: Env): Promise<number> {
       .bind('vps_report_interval_seconds')
       .first<{ value: string }>();
 
-    const interval = result?.value ? parseInt(result.value, 10) : 60;
+    const interval = result?.value ? parseInt(result.value, 10) : DEFAULT_VPS_REPORT_INTERVAL_SECONDS;
     if (!isNaN(interval) && interval > 0) {
       vpsIntervalCache = { value: interval, timestamp: now };
       return interval;
@@ -30,8 +31,8 @@ export async function getVpsReportInterval(env: Env): Promise<number> {
     // Silently ignore errors and use default value
   }
 
-  vpsIntervalCache = { value: 60, timestamp: now };
-  return 60;
+  vpsIntervalCache = { value: DEFAULT_VPS_REPORT_INTERVAL_SECONDS, timestamp: now };
+  return DEFAULT_VPS_REPORT_INTERVAL_SECONDS;
 }
 
 export function clearVpsIntervalCache(): void {

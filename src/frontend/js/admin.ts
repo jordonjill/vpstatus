@@ -43,7 +43,7 @@ async function apiRequest(url, options = {}) {
 
 // Global variables for VPS data updates
 let vpsUpdateInterval = null;
-const DEFAULT_VPS_REFRESH_INTERVAL_MS = 60000; // Default to 60 seconds for VPS data if backend setting fails
+const DEFAULT_VPS_REFRESH_INTERVAL_MS = 120000; // Default to 120 seconds for VPS data if backend setting fails
 
 // Function to fetch VPS refresh interval and start periodic VPS data updates
 async function initializeVpsDataUpdates() {
@@ -1558,11 +1558,11 @@ async function loadGlobalSettings() {
         if (settings && typeof settings.interval === 'number') {
             document.getElementById('vpsReportInterval').value = settings.interval;
         } else {
-            document.getElementById('vpsReportInterval').value = 60; // Default if not set
+            document.getElementById('vpsReportInterval').value = 120; // Default if not set
         }
     } catch (error) {
                 showToast('danger', 'Failed to load VPS report interval: ' + error.message);
-        document.getElementById('vpsReportInterval').value = 60; // Default on error
+        document.getElementById('vpsReportInterval').value = 120; // Default on error
     }
 }
 

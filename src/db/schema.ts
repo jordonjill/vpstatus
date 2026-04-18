@@ -81,7 +81,7 @@ export const D1_SCHEMAS: Record<string, string> = {
       key TEXT PRIMARY KEY,
       value TEXT
     );
-    INSERT OR IGNORE INTO app_config (key, value) VALUES ('vps_report_interval_seconds', '60');
+    INSERT OR IGNORE INTO app_config (key, value) VALUES ('vps_report_interval_seconds', '120');
     INSERT OR IGNORE INTO app_config (key, value) VALUES ('custom_background_enabled', 'false');
     INSERT OR IGNORE INTO app_config (key, value) VALUES ('custom_background_url', '');
     INSERT OR IGNORE INTO app_config (key, value) VALUES ('page_opacity', '80');`,

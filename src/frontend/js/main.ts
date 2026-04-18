@@ -5,7 +5,7 @@ export function getMainJs(): string {
 let vpsUpdateInterval = null;
 let siteUpdateInterval = null;
 let serverDataCache = {}; // Cache server data to avoid re-fetching for details
-const DEFAULT_VPS_REFRESH_INTERVAL_MS = 60000; // Default to 60 seconds for VPS data if backend setting fails
+const DEFAULT_VPS_REFRESH_INTERVAL_MS = 120000; // Default to 120 seconds for VPS data if backend setting fails
 const DEMO_AVAILABILITY = {
     'edge-sin-01': 99.8,
     'db-core-02': 98.9,

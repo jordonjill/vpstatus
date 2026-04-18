@@ -466,7 +466,7 @@ export async function handleAdminRoutes(
       const interval = await getVpsReportInterval(env);
       return createApiResponse({ interval }, 200, corsHeaders);
     } catch {
-      return createApiResponse({ interval: 60 }, 200, corsHeaders);
+      return createApiResponse({ interval: 120 }, 200, corsHeaders);
     }
   }
 
