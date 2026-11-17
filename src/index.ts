@@ -78,8 +78,10 @@ export default {
             }
           }
 
-          // Database maintenance check (runs once per day)
-          if (taskCounter % 1440 === 0) {
+          // Database maintenance (once per day at 00:00 UTC; based on the cron time,
+          // since the in-memory taskCounter resets whenever the isolate is recycled)
+          const scheduledAt = new Date(event.scheduledTime);
+          if (scheduledAt.getUTCHours() === 0 && scheduledAt.getUTCMinutes() === 0) {
             await performDatabaseMaintenance(env.DB);
           }
         } catch {

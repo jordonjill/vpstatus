@@ -261,6 +261,11 @@ export async function handleServerRoutes(
 
   // Single server move reorder
   if (path.match(/\/api\/admin\/servers\/[^/]+\/reorder$/) && method === 'POST') {
+    const user = await authenticateAdmin(request, env);
+    if (!user) {
+      return createErrorResponse('Unauthorized', 'Admin access required', 401, corsHeaders);
+    }
+
     try {
       const serverId = extractPathSegment(path, 4);
       if (!serverId) {

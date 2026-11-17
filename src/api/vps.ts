@@ -194,14 +194,22 @@ export async function handleVpsRoutes(
         return createErrorResponse('Invalid server ID', 'Invalid server ID', 400, corsHeaders);
       }
 
-      const serverData = await env.DB.prepare(
-        'SELECT id, name, description FROM servers WHERE id = ?'
+      const serverRow = await env.DB.prepare(
+        'SELECT id, name, description, is_public FROM servers WHERE id = ?'
       )
         .bind(serverId)
-        .first<{ id: string; name: string; description: string }>();
+        .first<{ id: string; name: string; description: string; is_public: number }>();
 
-      if (!serverData) {
+      if (!serverRow) {
         return createErrorResponse('Server not found', 'Server not found', 404, corsHeaders);
+      }
+
+      const { is_public: isPublic, ...serverData } = serverRow;
+      if (!isPublic) {
+        const user = await authenticateRequestOptional(request, env);
+        if (!user) {
+          return createErrorResponse('Unauthorized', 'Authentication required for private server', 401, corsHeaders);
+        }
       }
 
       const metricsData = await env.DB.prepare(`

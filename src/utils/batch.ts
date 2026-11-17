@@ -50,10 +50,12 @@ export async function flushVpsBatchData(env: Env): Promise<void> {
   try {
     const twelveHoursAgo = Math.floor(Date.now() / 1000) - TWELVE_HOURS_SECONDS;
 
+    // WHERE EXISTS skips reports for servers deleted while their data sat in the buffer;
+    // otherwise the FK violation fails the whole batch, which is then re-queued forever.
     const statements = batchData.flatMap(report => [
       env.DB.prepare(`
         REPLACE INTO metrics (server_id, timestamp, cpu, memory, disk, network, uptime)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7 WHERE EXISTS (SELECT 1 FROM servers WHERE id = ?1)
       `).bind(
         report.serverId,
         report.timestamp,
@@ -65,7 +67,7 @@ export async function flushVpsBatchData(env: Env): Promise<void> {
       ),
       env.DB.prepare(`
         INSERT INTO metrics_history (server_id, timestamp, cpu, memory, disk, network, uptime)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7 WHERE EXISTS (SELECT 1 FROM servers WHERE id = ?1)
       `).bind(
         report.serverId,
         report.timestamp,

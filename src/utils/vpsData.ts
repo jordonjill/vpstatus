@@ -13,13 +13,15 @@ type VpsFieldName = 'cpu' | 'memory' | 'disk' | 'network';
 export function validateAndFixVpsField(data: unknown, field: VpsFieldName): Record<string, number | number[]> {
   if (!data || typeof data !== 'object') return VPS_DATA_DEFAULTS[field] as Record<string, number | number[]>;
 
+  // Coerce every value to a finite number so nothing but numbers ever reaches the page
+  const toNumber = (v: unknown): number => {
+    const n = typeof v === 'number' ? v : parseFloat(String(v));
+    return Number.isFinite(n) ? n : 0;
+  };
+
   const converted: Record<string, number | number[]> = {};
   for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
-    if (Array.isArray(value)) {
-      converted[key] = value.map(v => (typeof v === 'string' ? parseFloat(v) || 0 : (v as number) || 0));
-    } else {
-      converted[key] = typeof value === 'string' ? parseFloat(value) || 0 : (value as number) || 0;
-    }
+    converted[key] = Array.isArray(value) ? value.map(toNumber) : toNumber(value);
   }
 
   return converted;

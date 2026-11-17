@@ -248,7 +248,8 @@ export async function handleAdminRoutes(
         return createSuccessResponse({ message: 'Set to custom sort order' }, corsHeaders);
       }
 
-      const safeSortBy = validateSqlIdentifier(sortBy, 'column');
+      // 'status' in the UI maps to the last_status column
+      const safeSortBy = validateSqlIdentifier(sortBy === 'status' ? 'last_status' : sortBy, 'column');
       const safeOrder = validateSqlIdentifier(order.toUpperCase(), 'order');
 
       const { results: sites } = await env.DB.prepare(`
@@ -270,6 +271,11 @@ export async function handleAdminRoutes(
 
   // Single site move reorder
   if (path.match(/\/api\/admin\/sites\/[^/]+\/reorder$/) && method === 'POST') {
+    const user = await authenticateAdmin(request, env);
+    if (!user) {
+      return createErrorResponse('Unauthorized', 'Admin access required', 401, corsHeaders);
+    }
+
     try {
       const siteId = extractPathSegment(path, 4);
       if (!siteId) {
@@ -434,6 +440,13 @@ export async function handleAdminRoutes(
       const siteId = path.split('/')[3];
       const nowSeconds = Math.floor(Date.now() / 1000);
       const twentyFourHoursAgoSeconds = nowSeconds - 24 * 60 * 60;
+
+      const siteRow = await env.DB.prepare('SELECT is_public FROM monitored_sites WHERE id = ?')
+        .bind(siteId)
+        .first<{ is_public: number }>();
+      if (siteRow && !siteRow.is_public && !(await authenticateRequest(request, env))) {
+        return createErrorResponse('Unauthorized', 'Authentication required for private site', 401, corsHeaders);
+      }
 
       const { results } = await env.DB.prepare(`
         SELECT timestamp, status, status_code, response_time_ms
