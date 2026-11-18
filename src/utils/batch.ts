@@ -1,7 +1,5 @@
 import type { Env, BatchReportItem, VpsReportData } from '../types';
 
-const TWELVE_HOURS_SECONDS = 12 * 60 * 60; // 43200 seconds
-
 // VPS data batch processor
 export class VpsBatchProcessor {
   private batchBuffer: BatchReportItem[] = [];
@@ -48,8 +46,6 @@ export async function flushVpsBatchData(env: Env): Promise<void> {
   if (batchData.length === 0) return;
 
   try {
-    const twelveHoursAgo = Math.floor(Date.now() / 1000) - TWELVE_HOURS_SECONDS;
-
     // WHERE EXISTS skips reports for servers deleted while their data sat in the buffer;
     // otherwise the FK violation fails the whole batch, which is then re-queued forever.
     const statements = batchData.flatMap(report => [
@@ -79,11 +75,8 @@ export async function flushVpsBatchData(env: Env): Promise<void> {
       ),
     ]);
 
-    // Append cleanup of old metrics_history entries
-    statements.push(
-      env.DB.prepare('DELETE FROM metrics_history WHERE timestamp < ?').bind(twelveHoursAgo)
-    );
-
+    // Old metrics_history rows are pruned hourly by performDatabaseMaintenance; deleting
+    // here scanned the whole table on every flush (~2M rows read per day).
     await env.DB.batch(statements);
     console.log(`Batch wrote ${batchData.length} VPS data records`);
   } catch (error) {

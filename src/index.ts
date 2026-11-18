@@ -78,10 +78,10 @@ export default {
             }
           }
 
-          // Database maintenance (once per day at 00:00 UTC; based on the cron time,
-          // since the in-memory taskCounter resets whenever the isolate is recycled)
-          const scheduledAt = new Date(event.scheduledTime);
-          if (scheduledAt.getUTCHours() === 0 && scheduledAt.getUTCMinutes() === 0) {
+          // Database maintenance: hourly, in bounded chunks (see db/maintenance.ts). Keyed off
+          // the cron time because the in-memory taskCounter resets whenever the isolate is
+          // recycled, and kept off minute 0 so it never lands right as the daily D1 quota resets.
+          if (new Date(event.scheduledTime).getUTCMinutes() === 30) {
             await performDatabaseMaintenance(env.DB);
           }
         } catch {
